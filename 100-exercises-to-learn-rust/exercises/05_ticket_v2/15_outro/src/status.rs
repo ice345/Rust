@@ -8,8 +8,12 @@ pub enum Status {
     Done,
 }
 
-#[derive(Debug)]
-pub struct StatusError(String);
+#[derive(Debug, thiserror::Error)]
+#[error("`{invalid_status}` is not a valid status. Use one of ToDo, InProgress, Done")]
+pub struct StatusError {
+    invalid_status: String,
+}
+// pub struct StatusError(String);
 
 impl TryFrom<String> for Status {
     type Error = StatusError;
@@ -18,7 +22,9 @@ impl TryFrom<String> for Status {
             "todo" => Ok(Status::ToDo),
             "inprogress" => Ok(Self::InProgress),
             "done" => Ok(Self::Done),
-            _ => Err(StatusError(value)),
+            _ => Err(StatusError {
+                invalid_status: value,
+            }),
         }
     }
 }
