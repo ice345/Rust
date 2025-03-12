@@ -2,6 +2,7 @@
 
 pub struct WeekTemperatures {
     // TODO
+    v: [Option<i32>;7],
 }
 
 pub enum Weekday {
@@ -14,19 +15,38 @@ pub enum Weekday {
     Sunday,
 }
 
+pub fn weekday2index(weekday: Weekday) -> usize {
+    match weekday {
+        Weekday::Monday => 0,
+        Weekday::Tuesday => 1,
+        Weekday::Wednesday => 2,
+        Weekday::Thursday => 3,
+        Weekday::Friday => 4,
+        Weekday::Saturday => 5,
+        Weekday::Sunday => 6,
+        _ => panic!("Error weekday!"),
+    }
+}
+
 impl WeekTemperatures {
     pub fn new() -> Self {
-        todo!()
+        WeekTemperatures {
+            v: [None; 7],
+        }
     }
 
     pub fn get_temperature(&self, day: Weekday) -> Option<i32> {
-        todo!()
+        let index = weekday2index(day);
+        self.v[index]
     }
 
     pub fn set_temperature(&mut self, day: Weekday, temperature: i32) {
-        todo!()
+        let index = weekday2index(day);
+        self.v[index] = Some(temperature);
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
