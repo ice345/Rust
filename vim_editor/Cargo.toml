@@ -1,0 +1,9 @@
+[package]
+name = "vim_editor"
+version = "0.1.0"
+authors = ["LJB <nni461904@gmail.com>"]
+description = "A simple as vim editor written in Rust"
+edition = "2024"
+
+[dependencies]
+crossterm = "0.21.0"
