@@ -1,14 +1,14 @@
 mod cleanup;
-mod editor;
+mod constants;
 mod cursor;
+mod editor;
+mod editor_contents;
+mod editor_rows;
 mod output;
 mod reader;
-mod editor_rows;
-mod constants;
-mod editor_contents;
 
-use editor::Editor;
 use crossterm::terminal;
+use editor::Editor;
 
 fn main() -> crossterm::Result<()> {
     let _clean = cleanup::CleanUp;

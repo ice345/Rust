@@ -1,7 +1,10 @@
-use crate::{cursor::CursorController, editor_rows::EditorRows, constants::Mode, editor_contents::EditorContents};
-use crossterm::{cursor, queue, style, terminal, execute};
+use crate::{
+    constants::Mode, cursor::CursorController, editor_contents::EditorContents,
+    editor_rows::EditorRows,
+};
+use crossterm::{cursor, execute, queue, style, terminal};
 use std::cmp;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 
 pub struct Output {
     pub win_size: (usize, usize),
@@ -14,7 +17,7 @@ impl Output {
     pub fn new() -> Self {
         let win_size = terminal::size()
             .map(|(x, y)| (x as usize, y as usize - 1))
-            .unwrap();  // terminal::size() return Result<(u16: column, u16: row)> 类型
+            .unwrap(); // terminal::size() return Result<(u16: column, u16: row)> 类型
         Self {
             win_size,
             editor_contents: EditorContents::new(),
@@ -74,7 +77,7 @@ impl Output {
         let screen_rows = self.win_size.1;
         let screen_columns = self.win_size.0;
         for i in 0..screen_rows {
-            let file_row = i + self.cursor_controller.row_offest;  // row_offest 为一个偏移量(使得文件内容随着光标偏移)
+            let file_row = i + self.cursor_controller.row_offest; // row_offest 为一个偏移量(使得文件内容随着光标偏移)
             if file_row >= self.editor_rows.number_of_rows() {
                 self.editor_contents.push('~');
             } else {
@@ -85,21 +88,31 @@ impl Output {
                 } else {
                     // 应用水平偏移量
                     let column_offset = self.cursor_controller.column_offest;
-                    let start = if column_offset < row.len() { column_offset } else { 0 }; //判断条件是判断column_offest是否已经使得行内容被偏移到已经看不到
+                    let start = if column_offset < row.len() {
+                        column_offset
+                    } else {
+                        0
+                    }; //判断条件是判断column_offest是否已经使得行内容被偏移到已经看不到
                     let end = row.len();
-                    
+
                     if start < end {
                         let adjusted_row = &row[start..end];
                         let display_length = cmp::min(adjusted_row.len(), screen_columns); // 限制屏幕内显示行的长度
-                        
+
                         // 检查当前行是否有搜索匹配项,高亮显示
-                        let matches_in_line: Vec<_> = self.editor_rows.search_matches.iter()
-                            .filter(|&&(row, col, _)| row == file_row && col >= start && col < start +display_length)
+                        let matches_in_line: Vec<_> = self
+                            .editor_rows
+                            .search_matches
+                            .iter()
+                            .filter(|&&(row, col, _)| {
+                                row == file_row && col >= start && col < start + display_length
+                            })
                             .collect();
 
                         if matches_in_line.is_empty() {
                             // 没有匹配项, 正常显示
-                            self.editor_contents.push_str(&adjusted_row[..display_length]);
+                            self.editor_contents
+                                .push_str(&adjusted_row[..display_length]);
                         } else {
                             // 有匹配项, 高亮显示
                             let mut last_pos = 0;
@@ -111,7 +124,8 @@ impl Output {
                                     // 确保不越界
                                     let end_pos = std::cmp::min(rel_col, adjusted_row.len());
                                     if last_pos < end_pos {
-                                        self.editor_contents.push_str(&adjusted_row[last_pos..end_pos]);
+                                        self.editor_contents
+                                            .push_str(&adjusted_row[last_pos..end_pos]);
                                     }
                                 }
 
@@ -120,10 +134,13 @@ impl Output {
 
                                 if rel_col < match_end && rel_col < adjusted_row.len() {
                                     let actual_end = std::cmp::min(match_end, adjusted_row.len());
-                                    
-                                    self.editor_contents.push_str(&style::Attribute::Underlined.to_string());
-                                    self.editor_contents.push_str(&adjusted_row[rel_col..actual_end]);
-                                    self.editor_contents.push_str(&style::Attribute::Reset.to_string());
+
+                                    self.editor_contents
+                                        .push_str(&style::Attribute::Underlined.to_string());
+                                    self.editor_contents
+                                        .push_str(&adjusted_row[rel_col..actual_end]);
+                                    self.editor_contents
+                                        .push_str(&style::Attribute::Reset.to_string());
                                 }
 
                                 // self.editor_contents.push_str(&style::Attribute::Underlined.to_string());
@@ -135,10 +152,10 @@ impl Output {
 
                             // 显示匹配后的剩余文本
                             if last_pos < display_length {
-                                self.editor_contents.push_str(&adjusted_row[last_pos..display_length]);
+                                self.editor_contents
+                                    .push_str(&adjusted_row[last_pos..display_length]);
                             }
                         }
-
                     }
                 }
             }
@@ -211,11 +228,7 @@ impl Output {
 
     pub fn refresh_screen(&mut self, mode: &Mode, command_buffer: &str) -> crossterm::Result<()> {
         self.cursor_controller.scroll();
-        queue!(
-            self.editor_contents,
-            cursor::Hide,
-            cursor::MoveTo(0, 0)
-        )?;
+        queue!(self.editor_contents, cursor::Hide, cursor::MoveTo(0, 0))?;
         self.draw_rows();
         let status_line_y = self.win_size.1;
         queue!(
@@ -242,16 +255,22 @@ impl Output {
                 style::Print(command_buffer)
             )?;
         }
-        
-        let cursor_y = self.cursor_controller.cursor_y.saturating_sub(self.cursor_controller.row_offest);
-        let cursor_x = self.cursor_controller.cursor_x.saturating_sub(self.cursor_controller.column_offest);
-        
+
+        let cursor_y = self
+            .cursor_controller
+            .cursor_y
+            .saturating_sub(self.cursor_controller.row_offest);
+        let cursor_x = self
+            .cursor_controller
+            .cursor_x
+            .saturating_sub(self.cursor_controller.column_offest);
+
         // 添加额外检查确保不会溢出u16
         let cursor_x = std::cmp::min(cursor_x, u16::MAX as usize) as u16;
         let cursor_y = std::cmp::min(cursor_y, u16::MAX as usize) as u16;
-        
+
         queue!(
-            self.editor_contents, 
+            self.editor_contents,
             cursor::MoveTo(cursor_x, cursor_y),
             cursor::Show,
         )?;
@@ -261,7 +280,6 @@ impl Output {
         execute!(stdout(), terminal::Clear(terminal::ClearType::All))?;
         execute!(stdout(), cursor::MoveTo(0, 0))
     }
-
 
     pub fn move_cursor(&mut self, direction: char, number_of_rows: usize) {
         match direction {
@@ -282,8 +300,13 @@ impl Output {
             }
             'l' => {
                 // 允许光标在文件内容的情况下根据行长度限制
-                if self.editor_rows.number_of_rows() > 0 && self.cursor_controller.cursor_y < self.editor_rows.number_of_rows() {
-                    let row_len = self.editor_rows.get_row(self.cursor_controller.cursor_y).len();
+                if self.editor_rows.number_of_rows() > 0
+                    && self.cursor_controller.cursor_y < self.editor_rows.number_of_rows()
+                {
+                    let row_len = self
+                        .editor_rows
+                        .get_row(self.cursor_controller.cursor_y)
+                        .len();
                     if self.cursor_controller.cursor_x < row_len {
                         self.cursor_controller.cursor_x += 1;
                     }
@@ -296,8 +319,13 @@ impl Output {
             }
             '$' => {
                 // 移动到行的实际末尾
-                if self.editor_rows.number_of_rows() > 0 && self.cursor_controller.cursor_y < self.editor_rows.number_of_rows() {
-                    let row_len = self.editor_rows.get_row(self.cursor_controller.cursor_y).len();
+                if self.editor_rows.number_of_rows() > 0
+                    && self.cursor_controller.cursor_y < self.editor_rows.number_of_rows()
+                {
+                    let row_len = self
+                        .editor_rows
+                        .get_row(self.cursor_controller.cursor_y)
+                        .len();
                     // 检查行长度，避免在空行上出现问题
                     if row_len > 0 {
                         self.cursor_controller.cursor_x = row_len - 1; // 移动到行的最后一个字符

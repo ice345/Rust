@@ -52,7 +52,6 @@ impl EditorRows {
         }
     }
 
-
     pub fn search(&mut self, query: &str) -> Option<(usize, usize)> {
         // self.search_term = if query.is_empty() {None} else { Some(query.to_string()) };
         // 清空之前的搜索结果
@@ -75,20 +74,20 @@ impl EditorRows {
 
         // 保存当前搜索词
         self.search_term = Some(query.to_string());
-        
+
         // 查找所有匹配项
         for (row_idx, row) in self.row_contents.iter().enumerate() {
             let mut col_idx = 0;
-            
+
             // 安全地查找所有匹配项
             while let Some(pos) = match row[col_idx..].find(query) {
                 Some(p) => Some(p),
-                None => None, // 处理可能的None值
+                None => None, // 处理可能的None值 (同下面一样的道理)
             } {
                 let match_pos = col_idx + pos;
                 // 保存匹配项的位置和长度
                 self.search_matches.push((row_idx, match_pos, query.len()));
-                
+
                 // 防止无限循环，确保col_idx会前进(问题出自这里, 举个例子:如果你跳转到最后一行,只有一个不匹配的字符,就会陷入无限循环)
                 if match_pos + 1 <= row.len() {
                     col_idx = match_pos + 1;
@@ -158,7 +157,7 @@ impl EditorRows {
         while at_row >= self.row_contents.len() {
             self.row_contents.push(Box::new(String::new()));
         }
-        
+
         // 获取指定行并插入字符
         let row = &mut self.row_contents[at_row];
         if at_col > row.len() {
@@ -177,7 +176,7 @@ impl EditorRows {
         if at_row >= self.row_contents.len() {
             return false;
         }
-        
+
         // 直接在原始数据上操作，不要克隆
         if at_col >= self.row_contents[at_row].len() {
             // 在行尾删除，需要与下一行合并
@@ -202,7 +201,7 @@ impl EditorRows {
         if at_row >= self.row_contents.len() {
             return false;
         }
-        
+
         // 直接在原始数据上操作，不要克隆
         self.row_contents.remove(at_row);
         return true;
@@ -214,10 +213,10 @@ impl EditorRows {
         while at_row >= self.row_contents.len() {
             self.row_contents.push(Box::new(String::new()));
         }
-        
+
         // 获取当前行
         let current_row = &mut self.row_contents[at_row];
-        
+
         // 创建新行
         let new_row = if at_col >= current_row.len() {
             // 如果在行尾，创建空行
@@ -228,7 +227,7 @@ impl EditorRows {
             current_row.truncate(at_col);
             Box::new(remainder)
         };
-        
+
         // 插入新行
         self.row_contents.insert(at_row + 1, new_row);
     }
@@ -238,18 +237,20 @@ impl EditorRows {
         match &self.filename {
             Some(path) => {
                 // 将所有行连接成一个字符串，使用换行符分隔
-                let content = self.row_contents.iter()
+                let content = self
+                    .row_contents
+                    .iter()
                     .map(|row| row.as_str())
                     .collect::<Vec<&str>>()
                     .join("\n");
-                
+
                 // 写入文件
                 std::fs::write(path, content)
             }
-            None => {
-                Err(std::io::Error::new(std::io::ErrorKind::NotFound, "No filename specified"))
-            }
+            None => Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "No filename specified",
+            )),
         }
     }
-
 }
