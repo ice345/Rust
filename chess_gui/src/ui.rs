@@ -2,9 +2,9 @@ use eframe::egui;
 use egui::{Color32, Pos2, Rect, Sense, Vec2};
 use std::time::Instant;
 
-use crate::types::*;
-use crate::board::Board;
 use crate::ai::ChessAI;
+use crate::board::Board;
+use crate::types::*;
 
 /// Main application structure that holds the board, AI, and game state
 pub struct ChessApp {
@@ -59,7 +59,8 @@ impl ChessApp {
         if self.game_state != GameState::Playing
             || self.current_player != Color::White
             || self.ai_thinking
-            || self.promotion_pending.is_some() // 如果正在等待升变选择，不处理点击
+            || self.promotion_pending.is_some()
+        // 如果正在等待升变选择，不处理点击
         {
             return;
         }
@@ -227,22 +228,34 @@ impl ChessApp {
                     ui.horizontal(|ui| {
                         ui.add_space(20.0);
                         // 皇后
-                        if ui.add_sized([60.0, 60.0], egui::Button::new("♕\nQueen")).clicked() {
+                        if ui
+                            .add_sized([60.0, 60.0], egui::Button::new("♕\nQueen"))
+                            .clicked()
+                        {
                             self.handle_promotion_choice(PieceType::Queen);
                         }
                         ui.add_space(10.0);
                         // 车
-                        if ui.add_sized([60.0, 60.0], egui::Button::new("♖\nRook")).clicked() {
+                        if ui
+                            .add_sized([60.0, 60.0], egui::Button::new("♖\nRook"))
+                            .clicked()
+                        {
                             self.handle_promotion_choice(PieceType::Rook);
                         }
                         ui.add_space(10.0);
                         // 象
-                        if ui.add_sized([60.0, 60.0], egui::Button::new("♗\nBishop")).clicked() {
+                        if ui
+                            .add_sized([60.0, 60.0], egui::Button::new("♗\nBishop"))
+                            .clicked()
+                        {
                             self.handle_promotion_choice(PieceType::Bishop);
                         }
                         ui.add_space(10.0);
                         // 马
-                        if ui.add_sized([60.0, 60.0], egui::Button::new("♘\nKnight")).clicked() {
+                        if ui
+                            .add_sized([60.0, 60.0], egui::Button::new("♘\nKnight"))
+                            .clicked()
+                        {
                             self.handle_promotion_choice(PieceType::Knight);
                         }
                     });
@@ -418,6 +431,12 @@ impl ChessApp {
     }
 }
 
+impl Default for ChessApp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl eframe::App for ChessApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Handle AI moves
@@ -425,7 +444,7 @@ impl eframe::App for ChessApp {
             if let Some(start_time) = self.ai_move_start {
                 let elapsed = start_time.elapsed().as_millis();
                 let time_limit = self.ai.time_limit as u128;
-                
+
                 // 更新状态消息显示思考进度
                 let progress = (elapsed as f32 / time_limit as f32 * 100.0).min(100.0);
                 self.status_message = format!("AI thinking... ({:.1}%)", progress);
@@ -461,27 +480,47 @@ impl eframe::App for ChessApp {
                 if ui.button("New Game").clicked() {
                     self.new_game();
                 }
-                
+
                 ui.separator();
-                
+
                 // 显示性能信息
                 if self.ai.nodes_searched > 0 {
                     ui.label(format!("Search nodes: {}", self.ai.nodes_searched));
                 }
-                
+
                 ui.separator();
 
                 ui.label("AI Difficulty:");
                 let old_difficulty = self.ai_difficulty;
                 egui::ComboBox::from_label("")
-                    .selected_text(format!("{} (depth:{})", self.ai_difficulty.to_string(), self.ai_difficulty.get_depth()))
+                    .selected_text(format!(
+                        "{} (depth:{})",
+                        self.ai_difficulty.to_string(),
+                        self.ai_difficulty.get_depth()
+                    ))
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.ai_difficulty, AIDifficulty::Easy, "Easy (depth:2)");
-                        ui.selectable_value(&mut self.ai_difficulty, AIDifficulty::Medium, "Medium (depth:4)");
-                        ui.selectable_value(&mut self.ai_difficulty, AIDifficulty::Hard, "Hard (depth:6)");
-                        ui.selectable_value(&mut self.ai_difficulty, AIDifficulty::Expert, "Expert (depth:8)");
+                        ui.selectable_value(
+                            &mut self.ai_difficulty,
+                            AIDifficulty::Easy,
+                            "Easy (depth:2)",
+                        );
+                        ui.selectable_value(
+                            &mut self.ai_difficulty,
+                            AIDifficulty::Medium,
+                            "Medium (depth:4)",
+                        );
+                        ui.selectable_value(
+                            &mut self.ai_difficulty,
+                            AIDifficulty::Hard,
+                            "Hard (depth:6)",
+                        );
+                        ui.selectable_value(
+                            &mut self.ai_difficulty,
+                            AIDifficulty::Expert,
+                            "Expert (depth:8)",
+                        );
                     });
-                
+
                 // 当难度改变时立即更新AI
                 if old_difficulty != self.ai_difficulty {
                     self.set_ai_difficulty(self.ai_difficulty);
@@ -585,7 +624,7 @@ impl eframe::App for ChessApp {
 
             // Draw rank labels (8-1) on the left side
             for row in 0..8 {
-                let rank_num =  8 - row;
+                let rank_num = 8 - row;
                 let x = board_rect.min.x - coordinate_size / 2.0;
                 let y = board_rect.min.y + row as f32 * square_size + square_size / 2.0;
 
