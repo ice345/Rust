@@ -60,16 +60,16 @@ impl AIDifficulty {
             AIDifficulty::Expert => 8,
         }
     }
-    
+
     pub fn get_time_limit(&self) -> u64 {
         match self {
-            AIDifficulty::Easy => 200,    // 0.2秒
-            AIDifficulty::Medium => 800,  // 0.8秒
-            AIDifficulty::Hard => 3000,   // 3秒
+            AIDifficulty::Easy => 1000,   // 1秒
+            AIDifficulty::Medium => 2000, // 2秒
+            AIDifficulty::Hard => 4000,   // 4秒
             AIDifficulty::Expert => 8000, // 8秒
         }
     }
-    
+
     pub fn to_string(&self) -> &str {
         match self {
             AIDifficulty::Easy => "Easy",
