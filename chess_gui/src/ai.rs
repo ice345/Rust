@@ -1,8 +1,8 @@
 //! 国际象棋AI模块
 //! 包含AI搜索算法、评估函数和移动排序
 
-use crate::types::*;
 use crate::board::Board;
+use crate::types::*;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -51,18 +51,18 @@ impl ChessAI {
             zobrist_turn: 0,
             zobrist_castling: [0u64; 4],
         };
-        
+
         // 初始化Zobrist哈希表
         ai.init_zobrist();
         ai
     }
-    
+
     fn init_zobrist(&mut self) {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
-        
+
         // 为每个棋子位置生成随机数
         for square in 0..64 {
             for piece_type in 0..6 {
@@ -73,21 +73,21 @@ impl ChessAI {
                 }
             }
         }
-        
+
         // 生成其他哈希值
         999999u64.hash(&mut hasher);
         self.zobrist_turn = hasher.finish();
-        
+
         for i in 0..4 {
             hasher = DefaultHasher::new();
             (888888u64 + i as u64).hash(&mut hasher);
             self.zobrist_castling[i] = hasher.finish();
         }
     }
-    
+
     fn get_board_hash(&self, board: &Board) -> u64 {
         let mut hash = 0u64;
-        
+
         for row in 0..8 {
             for col in 0..8 {
                 if let Some(piece) = board.get_piece((row, col)) {
@@ -108,7 +108,7 @@ impl ChessAI {
                 }
             }
         }
-        
+
         // 添加其他状态到哈希
         if !board.white_king_moved {
             hash ^= self.zobrist_castling[0];
@@ -122,7 +122,7 @@ impl ChessAI {
         if !board.black_rook_a_moved {
             hash ^= self.zobrist_castling[3];
         }
-        
+
         hash
     }
 
@@ -135,98 +135,109 @@ impl ChessAI {
     fn iterative_deepening(&mut self, board: &Board, color: Color) -> Option<Move> {
         let start_time = Instant::now();
         let mut best_move = None;
-        
+
         // 清空置换表以避免内存过多使用
         if self.transposition_table.len() > 100000 {
             self.transposition_table.clear();
         }
-        
+
         // 从深度1开始，逐步加深
         for depth in 1..=self.max_depth {
             if start_time.elapsed().as_millis() > self.time_limit as u128 {
                 break;
             }
-            
+
             self.nodes_searched = 0;
             let result = self.search_depth(board, depth, color, start_time);
-            
+
             if let Some(mv) = result {
                 best_move = Some(mv);
-                
+
                 // 如果剩余时间不足，提前结束
                 if start_time.elapsed().as_millis() > (self.time_limit / 2) as u128 {
                     break;
                 }
             }
         }
-        
+
         best_move
     }
-    
+
     /// 在指定深度搜索
-    fn search_depth(&mut self, board: &Board, depth: u32, color: Color, start_time: Instant) -> Option<Move> {
+    fn search_depth(
+        &mut self,
+        board: &Board,
+        depth: u32,
+        color: Color,
+        start_time: Instant,
+    ) -> Option<Move> {
         let mut moves = board.generate_moves(color);
         if moves.is_empty() {
             return None;
         }
-        
+
         // 移动排序
         self.advanced_move_ordering(&mut moves, board);
-        
+
         let mut best_move = moves[0];
-        let mut best_score = if color == Color::White { i32::MIN } else { i32::MAX };
-        
+        let mut best_score = if color == Color::White {
+            i32::MIN
+        } else {
+            i32::MAX
+        };
+
         for mv in moves {
             // 检查时间限制
             if start_time.elapsed().as_millis() > self.time_limit as u128 {
                 break;
             }
-            
+
             let mut new_board = board.clone();
             new_board.make_move(mv);
-            
+
             let score = self.minimax_with_tt(
-                &new_board, 
-                depth - 1, 
-                i32::MIN, 
-                i32::MAX, 
+                &new_board,
+                depth - 1,
+                i32::MIN,
+                i32::MAX,
                 color == Color::Black,
-                start_time
+                start_time,
             );
-            
-            if (color == Color::White && score > best_score) || 
-               (color == Color::Black && score < best_score) {
+
+            if (color == Color::White && score > best_score)
+                || (color == Color::Black && score < best_score)
+            {
                 best_score = score;
                 best_move = mv;
             }
         }
-        
+
         Some(best_move)
     }
-    
+
     /// 带置换表的minimax搜索
     fn minimax_with_tt(
-        &mut self, 
-        board: &Board, 
-        depth: u32, 
-        mut alpha: i32, 
-        mut beta: i32, 
+        &mut self,
+        board: &Board,
+        depth: u32,
+        mut alpha: i32,
+        mut beta: i32,
         maximizing: bool,
-        start_time: Instant
+        start_time: Instant,
     ) -> i32 {
         // 时间检查
         if start_time.elapsed().as_millis() > self.time_limit as u128 {
             return board.evaluate();
         }
-        
+
         self.nodes_searched += 1;
-        
+
         if depth == 0 {
             return board.evaluate();
         }
-        
+
         let board_hash = self.get_board_hash(board);
-        
+
         // 查找置换表
         if let Some(entry) = self.transposition_table.get(&board_hash) {
             if entry.depth >= depth {
@@ -240,31 +251,40 @@ impl ChessAI {
                 }
             }
         }
-        
-        let color = if maximizing { Color::White } else { Color::Black };
+
+        let color = if maximizing {
+            Color::White
+        } else {
+            Color::Black
+        };
         let mut moves = board.generate_moves(color);
-        
+
         if moves.is_empty() {
             if board.is_in_check(color) {
-                return if maximizing { -100000 + depth as i32 } else { 100000 - depth as i32 };
+                return if maximizing {
+                    -100000 + depth as i32
+                } else {
+                    100000 - depth as i32
+                };
             } else {
                 return 0; // 和棋
             }
         }
-        
+
         // 移动排序
         self.advanced_move_ordering(&mut moves, board);
-        
+
         let original_alpha = alpha;
         let mut best_score = if maximizing { i32::MIN } else { i32::MAX };
         let mut best_move = None;
-        
+
         for mv in moves {
             let mut new_board = board.clone();
             new_board.make_move(mv);
-            
-            let score = self.minimax_with_tt(&new_board, depth - 1, alpha, beta, !maximizing, start_time);
-            
+
+            let score =
+                self.minimax_with_tt(&new_board, depth - 1, alpha, beta, !maximizing, start_time);
+
             if maximizing {
                 if score > best_score {
                     best_score = score;
@@ -278,12 +298,12 @@ impl ChessAI {
                 }
                 beta = beta.min(score);
             }
-            
+
             if beta <= alpha {
                 break; // Alpha-beta剪枝
             }
         }
-        
+
         // 存储到置换表
         let node_type = if best_score <= original_alpha {
             NodeType::UpperBound
@@ -292,22 +312,25 @@ impl ChessAI {
         } else {
             NodeType::Exact
         };
-        
-        self.transposition_table.insert(board_hash, TranspositionEntry {
-            depth,
-            score: best_score,
-            best_move,
-            node_type,
-        });
-        
+
+        self.transposition_table.insert(
+            board_hash,
+            TranspositionEntry {
+                depth,
+                score: best_score,
+                best_move,
+                node_type,
+            },
+        );
+
         best_score
     }
-    
+
     /// 高级移动排序
     fn advanced_move_ordering(&self, moves: &mut [Move], board: &Board) {
         moves.sort_by_cached_key(|mv| {
             let mut score = 0;
-            
+
             // 1. 置换表中的最佳移动
             let board_hash = self.get_board_hash(board);
             if let Some(entry) = self.transposition_table.get(&board_hash) {
@@ -315,14 +338,14 @@ impl ChessAI {
                     score += 10000;
                 }
             }
-            
+
             // 2. 吃子移动 (MVV-LVA)
             if let Some(victim) = board.get_piece(mv.to) {
                 let victim_value = self.piece_value(victim.piece_type);
                 let attacker_value = self.piece_value(board.get_piece(mv.from).unwrap().piece_type);
                 score += victim_value * 10 - attacker_value;
             }
-            
+
             // 3. 将军移动
             let mut temp_board = board.clone();
             temp_board.make_move(*mv);
@@ -333,29 +356,39 @@ impl ChessAI {
             if temp_board.is_in_check(opponent_color) {
                 score += 500;
             }
-            
+
             // 4. 城堡移动
             if let Some(piece) = board.get_piece(mv.from) {
-                if piece.piece_type == PieceType::King && 
-                   (mv.to.1 as i32 - mv.from.1 as i32).abs() == 2 {
+                if piece.piece_type == PieceType::King
+                    && (mv.to.1 as i32 - mv.from.1 as i32).abs() == 2
+                {
                     score += 300;
                 }
             }
-            
+
             // 5. 中心控制
             let center_bonus = match mv.to {
                 (3, 3) | (3, 4) | (4, 3) | (4, 4) => 50,
-                (2, 2) | (2, 3) | (2, 4) | (2, 5) | 
-                (3, 2) | (3, 5) | (4, 2) | (4, 5) | 
-                (5, 2) | (5, 3) | (5, 4) | (5, 5) => 20,
+                (2, 2)
+                | (2, 3)
+                | (2, 4)
+                | (2, 5)
+                | (3, 2)
+                | (3, 5)
+                | (4, 2)
+                | (4, 5)
+                | (5, 2)
+                | (5, 3)
+                | (5, 4)
+                | (5, 5) => 20,
                 _ => 0,
             };
             score += center_bonus;
-            
+
             -score // 降序排列
         });
     }
-    
+
     fn piece_value(&self, piece_type: PieceType) -> i32 {
         match piece_type {
             PieceType::Pawn => 100,
@@ -373,25 +406,25 @@ impl Board {
     /// 改进的评估函数
     pub fn evaluate(&self) -> i32 {
         let mut score = 0;
-        
+
         // 1. 基础子力价值
         score += self.material_evaluation();
-        
+
         // 2. 位置评估
         score += self.positional_evaluation();
-        
+
         // 3. 国王安全
         score += self.king_safety_evaluation();
-        
+
         // 4. 机动性评估
         score += self.mobility_evaluation();
-        
+
         score
     }
-    
+
     fn material_evaluation(&self) -> i32 {
         let mut score = 0;
-        
+
         for row in 0..8 {
             for col in 0..8 {
                 if let Some(piece) = self.get_piece((row, col)) {
@@ -403,7 +436,7 @@ impl Board {
                         PieceType::Queen => 900,
                         PieceType::King => 20000,
                     };
-                    
+
                     match piece.color {
                         Color::White => score += value,
                         Color::Black => score -= value,
@@ -411,32 +444,84 @@ impl Board {
                 }
             }
         }
-        
+
         score
     }
-    
+
     fn positional_evaluation(&self) -> i32 {
-        // TODO: 实现位置评估
-        0
+        let mut score = 0;
+
+        let pawn_table = [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [50, 50, 50, 50, 50, 50, 50, 50],
+            [10, 10, 20, 30, 30, 20, 10, 10],
+            [5, 5, 10, 25, 25, 10, 5, 5],
+            [0, 0, 0, 20, 20, 0, 0, 0],
+            [5, -5, -10, 0, 0, -10, -5, 5],
+            [5, 10, 10, -20, -20, 10, 10, 5],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        ];
+
+        let knight_table = [
+            [-50, -40, -30, -30, -30, -30, -40, -50],
+            [-40, -20, 0, 0, 0, 0, -20, -40],
+            [-30, 0, 10, 15, 15, 10, 0, -30],
+            [-30, 5, 15, 20, 20, 15, 5, -30],
+            [-30, 0, 15, 20, 20, 15, 0, -30],
+            [-30, 5, 10, 15, 15, 10, 5, -30],
+            [-40, -20, 0, 5, 5, 0, -20, -40],
+            [-50, -40, -30, -30, -30, -30, -40, -50],
+        ];
+
+        for row in 0..8 {
+            for col in 0..8 {
+                if let Some(piece) = self.get_piece((row, col)) {
+                    let position_bonus = match piece.piece_type {
+                        PieceType::Pawn => {
+                            if piece.color == Color::White {
+                                pawn_table[7 - row][col]
+                            } else {
+                                pawn_table[row][col]
+                            }
+                        }
+                        PieceType::Knight => {
+                            if piece.color == Color::White {
+                                knight_table[7 - row][col]
+                            } else {
+                                knight_table[row][col]
+                            }
+                        }
+                        _ => 0,
+                    };
+
+                    match piece.color {
+                        Color::White => score += position_bonus,
+                        Color::Black => score -= position_bonus,
+                    }
+                }
+            }
+        }
+
+        score
     }
-    
+
     fn king_safety_evaluation(&self) -> i32 {
         let mut score = 0;
-        
+
         if self.is_in_check(Color::White) {
             score -= 50;
         }
         if self.is_in_check(Color::Black) {
             score += 50;
         }
-        
+
         score
     }
-    
+
     fn mobility_evaluation(&self) -> i32 {
         let white_moves = self.generate_moves(Color::White).len() as i32;
         let black_moves = self.generate_moves(Color::Black).len() as i32;
-        
+
         (white_moves - black_moves) * 5
     }
 }
