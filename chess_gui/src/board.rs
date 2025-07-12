@@ -717,3 +717,140 @@ impl Default for Board {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{Color, PieceType};
+
+    #[test]
+    fn test_initial_board_setup() {
+        let board = Board::new();
+        // Test some white pieces
+        assert_eq!(
+            board.get_piece((7, 4)),
+            Some(Piece::new(PieceType::King, Color::White))
+        );
+        assert_eq!(
+            board.get_piece((7, 0)),
+            Some(Piece::new(PieceType::Rook, Color::White))
+        );
+        // Test some black pieces
+        assert_eq!(
+            board.get_piece((0, 4)),
+            Some(Piece::new(PieceType::King, Color::Black))
+        );
+        // Test some pawns
+        assert_eq!(
+            board.get_piece((6, 0)),
+            Some(Piece::new(PieceType::Pawn, Color::White))
+        );
+        assert_eq!(
+            board.get_piece((1, 7)),
+            Some(Piece::new(PieceType::Pawn, Color::Black))
+        );
+        // Test some empty squares
+        assert!(board.get_piece((3, 3)).is_none());
+    }
+
+    #[test]
+    fn test_make_move() {
+        let mut board = Board::new();
+        let mv = Move {
+            from: (6, 4),
+            to: (4, 4),
+            promotion: None,
+        };
+        board.make_move(mv);
+        assert!(board.get_piece((6, 4)).is_none());
+        assert_eq!(
+            board.get_piece((4, 4)),
+            Some(Piece::new(PieceType::Pawn, Color::White))
+        );
+    }
+
+    #[test]
+    fn test_pawn_initial_double_move() {
+        let board = Board::new();
+        let moves = board.generate_moves(Color::White);
+        let double_move_e4 = Move {
+            from: (6, 4),
+            to: (4, 4),
+            promotion: None,
+        };
+        assert!(moves.contains(&double_move_e4));
+    }
+
+    #[test]
+    fn test_is_in_check() {
+        let mut board = Board::new();
+        // Clear board except for kings and a threatening piece
+        board.squares = [[None; 8]; 8];
+        board.set_piece((0, 4), Some(Piece::new(PieceType::King, Color::Black)));
+        board.set_piece((7, 4), Some(Piece::new(PieceType::King, Color::White)));
+        board.black_king_pos = (0, 4);
+        board.white_king_pos = (7, 4);
+
+        // Place a white rook to check the black king
+        board.set_piece((0, 0), Some(Piece::new(PieceType::Rook, Color::White)));
+
+        assert!(board.is_in_check(Color::Black));
+        assert!(!board.is_in_check(Color::White));
+    }
+
+    #[test]
+    fn test_castling_generation() {
+        let mut board = Board::new();
+        // Clear path for white king-side castling
+        board.set_piece((7, 5), None);
+        board.set_piece((7, 6), None);
+
+        let moves = board.generate_moves(Color::White);
+        let castling_move = Move {
+            from: (7, 4),
+            to: (7, 6),
+            promotion: None,
+        };
+        
+        // Note: The is_valid_castling is complex. If this fails, it might be due to the logic
+        // not perfectly handling all intermediate checks. For now, we assert it's generated.
+        assert!(
+            moves.contains(&castling_move),
+            "Castling move should be generated"
+        );
+    }
+    
+    #[test]
+    fn test_en_passant_move() {
+        let mut board = Board::new();
+        board.squares = [[None; 8]; 8]; // Clear board
+
+        // Set up an en passant scenario
+        let white_pawn = Piece::new(PieceType::Pawn, Color::White);
+        let black_pawn = Piece::new(PieceType::Pawn, Color::Black);
+        board.set_piece((3, 4), Some(white_pawn)); // White pawn on e5
+        board.set_piece((1, 3), Some(black_pawn)); // Black pawn on d7
+        board.white_king_pos = (7, 7); // Place kings somewhere safe
+        board.black_king_pos = (0, 0);
+
+        // 1. Black moves d7 to d5, creating an en passant target at d6
+        let mut board_after_black_move = board.clone();
+        board_after_black_move.make_move(Move { from: (1, 3), to: (3, 3), promotion: None });
+        
+        assert_eq!(board_after_black_move.en_passant_target, Some((2, 3)));
+
+        // 2. Check if white can legally perform en passant
+        let white_moves = board_after_black_move.generate_moves(Color::White);
+        let en_passant_move = Move { from: (3, 4), to: (2, 3), promotion: None };
+        assert!(white_moves.contains(&en_passant_move));
+
+        // 3. Perform the en passant move
+        board_after_black_move.make_move(en_passant_move);
+
+        // 4. Verify the board state
+        assert!(board_after_black_move.get_piece((2, 3)).is_some()); // White pawn moved to d6
+        assert_eq!(board_after_black_move.get_piece((2, 3)).unwrap().piece_type, PieceType::Pawn);
+        assert!(board_after_black_move.get_piece((3, 3)).is_none()); // Black pawn was captured
+        assert!(board_after_black_move.get_piece((3, 4)).is_none()); // White pawn moved from e5
+    }
+}

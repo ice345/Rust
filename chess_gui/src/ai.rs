@@ -525,3 +525,60 @@ impl Board {
         (white_moves - black_moves) * 5
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::board::Board;
+    use crate::types::{Color, Piece, PieceType};
+
+    #[test]
+    fn test_ai_new() {
+        let ai = ChessAI::new(3);
+        assert_eq!(ai.max_depth, 3);
+        // Fix: Correct assertion syntax
+        assert!(ai.zobrist_turn != 0, "Zobrist keys should be initialized");
+    }
+
+    #[test]
+    fn test_initial_board_evaluation_is_zero() {
+        let board = Board::new();
+        assert_eq!(board.evaluate(), 0);
+    }
+
+    #[test]
+    fn test_ai_finds_a_move_in_initial_position() {
+        let mut ai = ChessAI::new(1); // Use depth 1 for speed
+        let board = Board::new();
+        let best_move = ai.get_best_move(&board, Color::White);
+        assert!(best_move.is_some());
+    }
+
+    #[test]
+    fn test_evaluation_for_checkmate() {
+        let mut board = Board::new();
+        board.squares = [[None; 8]; 8]; // Clear board
+
+        // Fix: Set up a real checkmate position.
+        // Black king at a8, White queen at a7, White king at b6 (protecting the queen).
+        board.set_piece((0, 0), Some(Piece::new(PieceType::King, Color::Black)));
+        board.set_piece((1, 0), Some(Piece::new(PieceType::Queen, Color::White)));
+        board.set_piece((2, 1), Some(Piece::new(PieceType::King, Color::White))); // Moved from c6 to b6
+        board.black_king_pos = (0, 0);
+        board.white_king_pos = (2, 1);
+
+        // Black is in checkmate, so there are no legal moves.
+        let moves = board.generate_moves(Color::Black);
+        assert!(moves.is_empty(), "In a checkmate position, there should be no legal moves.");
+        assert!(board.is_in_check(Color::Black));
+
+        // The evaluation for a checkmated position should be extremely low for the losing side.
+        // The minimax function should return a value close to -100000.
+        let mut ai = ChessAI::new(2);
+        let score = ai.minimax_with_tt(&board, 2, i32::MIN, i32::MAX, false, std::time::Instant::now());
+
+        // Since it's black's turn (minimizing player) and they are checkmated, the score
+        // should be a large positive number (good for white).
+        assert!(score > 90000, "Score was {}, expected > 90000 for a checkmated position", score);
+    }
+}
