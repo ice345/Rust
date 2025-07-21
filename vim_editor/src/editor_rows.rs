@@ -2,11 +2,17 @@ use std::fs;
 use std::path::PathBuf;
 
 pub struct EditorRows {
-    pub row_contents: Vec<Box<String>>,
+    pub row_contents: Vec<Box<String>>, // 使用 Box<String> 以减少内存分配和复制
     pub filename: Option<PathBuf>,
 
     pub search_term: Option<String>,
     pub search_matches: Vec<(usize, usize, usize)>, // (行号, 起始列, 长度)
+}
+
+impl Default for EditorRows {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EditorRows {
@@ -80,16 +86,13 @@ impl EditorRows {
             let mut col_idx = 0;
 
             // 安全地查找所有匹配项
-            while let Some(pos) = match row[col_idx..].find(query) {
-                Some(p) => Some(p),
-                None => None, // 处理可能的None值 (同下面一样的道理)
-            } {
+            while let Some(pos) = row[col_idx..].find(query) {
                 let match_pos = col_idx + pos;
                 // 保存匹配项的位置和长度
                 self.search_matches.push((row_idx, match_pos, query.len()));
 
                 // 防止无限循环，确保col_idx会前进(问题出自这里, 举个例子:如果你跳转到最后一行,只有一个不匹配的字符,就会陷入无限循环)
-                if match_pos + 1 <= row.len() {
+                if match_pos < row.len() {
                     col_idx = match_pos + 1;
                 } else {
                     break;
@@ -187,11 +190,11 @@ impl EditorRows {
                 self.row_contents[at_row].push_str(&next_row);
                 return true;
             }
-            return false;
+            false
         } else {
             // 删除指定位置的字符
             self.row_contents[at_row].remove(at_col);
-            return true;
+            true
         }
     }
 
@@ -204,7 +207,7 @@ impl EditorRows {
 
         // 直接在原始数据上操作，不要克隆
         self.row_contents.remove(at_row);
-        return true;
+        true
     }
 
     // 处理回车键，分割行

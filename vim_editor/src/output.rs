@@ -13,6 +13,12 @@ pub struct Output {
     pub cursor_controller: CursorController,
 }
 
+impl Default for Output {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Output {
     pub fn new() -> Self {
         let win_size = terminal::size()

@@ -8,6 +8,12 @@ pub struct Editor {
     command_buffer: String,
 }
 
+impl Default for Editor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Editor {
     pub fn new() -> Self {
         Self {

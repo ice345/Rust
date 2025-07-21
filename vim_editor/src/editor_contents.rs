@@ -4,6 +4,12 @@ pub struct EditorContents {
     content: String,
 }
 
+impl Default for EditorContents {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EditorContents {
     pub fn new() -> Self {
         Self {
