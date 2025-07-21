@@ -166,7 +166,26 @@ impl Editor {
                             };
                         self.output.cursor_controller.cursor_x = 0;
                     }
-                    if self.command_buffer == "w" {
+                    if self.command_buffer.starts_with("w ") {
+                        let parts: Vec<&str> = self.command_buffer.split_whitespace().collect();
+                        if parts.len() == 2 {
+                            let filename = parts[1];
+                            self.output.editor_rows.filename = Some(filename.into());
+                            match self.output.editor_rows.save_file() {
+                                Ok(_) => {
+                                    self.command_buffer.clear();
+                                    self.mode = Mode::Normal;
+                                }
+                                Err(e) => {
+                                    self.command_buffer = format!("Error: {}", e);
+                                    self.mode = Mode::Normal;
+                                }
+                            }
+                        } else {
+                            self.command_buffer = "Error: Invalid w command".to_string();
+                            self.mode = Mode::Normal;
+                        }
+                    } else if self.command_buffer == "w" {
                         match self.output.editor_rows.save_file() {
                             Ok(_) => {
                                 self.command_buffer.clear();
@@ -177,22 +196,21 @@ impl Editor {
                                 self.mode = Mode::Normal;
                             }
                         }
-                        self.command_buffer.clear();
-                        self.mode = Mode::Normal;
-                    }
-                    if self.command_buffer == "wq" {
-                        match self.output.editor_rows.save_file() {
-                            Ok(_) => {
-                                self.command_buffer.clear();
-                                return Ok(false);
+                    } else if self.command_buffer == "wq" {
+                        if self.output.editor_rows.filename.is_some() {
+                            match self.output.editor_rows.save_file() {
+                                Ok(_) => {
+                                    return Ok(false);
+                                }
+                                Err(e) => {
+                                    self.command_buffer = format!("Error: {}", e);
+                                    self.mode = Mode::Normal;
+                                }
                             }
-                            Err(e) => {
-                                self.command_buffer = format!("Error: {}", e);
-                                self.mode = Mode::Normal;
-                            }
+                        } else {
+                            self.command_buffer = "Error: No filename specified".to_string();
+                            self.mode = Mode::Normal;
                         }
-                        self.command_buffer.clear();
-                        self.mode = Mode::Normal;
                     }
                     if self.command_buffer == "q!" {
                         self.command_buffer.clear();
