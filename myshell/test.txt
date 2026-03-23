@@ -1,0 +1,8 @@
+ice
+total 28K
+-rw-r--r-- 1 ice ice 14K Dec 14 22:58 Cargo.lock
+-rw-r--r-- 1 ice ice 218 Dec 14 22:58 Cargo.toml
+-rw------- 1 ice ice 862 Dec 21 00:54 history.txt
+drwxr-xr-x 1 ice ice  14 Dec 21 14:41 src
+drwxr-xr-x 1 ice ice  66 Dec 14 17:03 target
+-rw-r--r-- 1 ice ice   4 Dec 21 14:42 test.txt

@@ -1,0 +1,12 @@
+[package]
+name = "myshell"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dirs = "6.0.0"
+rustyline = { version = "17.0.1", features = ["derive"] }
+
+[features]
+default = ["with-file-history"]
+with-file-history = []

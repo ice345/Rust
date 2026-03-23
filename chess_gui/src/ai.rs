@@ -239,16 +239,16 @@ impl ChessAI {
         let board_hash = self.get_board_hash(board);
 
         // 查找置换表
-        if let Some(entry) = self.transposition_table.get(&board_hash) {
-            if entry.depth >= depth {
-                match entry.node_type {
-                    NodeType::Exact => return entry.score,
-                    NodeType::LowerBound => alpha = alpha.max(entry.score),
-                    NodeType::UpperBound => beta = beta.min(entry.score),
-                }
-                if alpha >= beta {
-                    return entry.score;
-                }
+        if let Some(entry) = self.transposition_table.get(&board_hash)
+            && entry.depth >= depth
+        {
+            match entry.node_type {
+                NodeType::Exact => return entry.score,
+                NodeType::LowerBound => alpha = alpha.max(entry.score),
+                NodeType::UpperBound => beta = beta.min(entry.score),
+            }
+            if alpha >= beta {
+                return entry.score;
             }
         }
 
@@ -333,10 +333,10 @@ impl ChessAI {
 
             // 1. 置换表中的最佳移动
             let board_hash = self.get_board_hash(board);
-            if let Some(entry) = self.transposition_table.get(&board_hash) {
-                if entry.best_move == Some(*mv) {
-                    score += 10000;
-                }
+            if let Some(entry) = self.transposition_table.get(&board_hash)
+                && entry.best_move == Some(*mv)
+            {
+                score += 10000;
             }
 
             // 2. 吃子移动 (MVV-LVA)
@@ -358,12 +358,11 @@ impl ChessAI {
             }
 
             // 4. 城堡移动
-            if let Some(piece) = board.get_piece(mv.from) {
-                if piece.piece_type == PieceType::King
-                    && (mv.to.1 as i32 - mv.from.1 as i32).abs() == 2
-                {
-                    score += 300;
-                }
+            if let Some(piece) = board.get_piece(mv.from)
+                && piece.piece_type == PieceType::King
+                && (mv.to.1 as i32 - mv.from.1 as i32).abs() == 2
+            {
+                score += 300;
             }
 
             // 5. 中心控制
@@ -569,16 +568,30 @@ mod tests {
 
         // Black is in checkmate, so there are no legal moves.
         let moves = board.generate_moves(Color::Black);
-        assert!(moves.is_empty(), "In a checkmate position, there should be no legal moves.");
+        assert!(
+            moves.is_empty(),
+            "In a checkmate position, there should be no legal moves."
+        );
         assert!(board.is_in_check(Color::Black));
 
         // The evaluation for a checkmated position should be extremely low for the losing side.
         // The minimax function should return a value close to -100000.
         let mut ai = ChessAI::new(2);
-        let score = ai.minimax_with_tt(&board, 2, i32::MIN, i32::MAX, false, std::time::Instant::now());
+        let score = ai.minimax_with_tt(
+            &board,
+            2,
+            i32::MIN,
+            i32::MAX,
+            false,
+            std::time::Instant::now(),
+        );
 
         // Since it's black's turn (minimizing player) and they are checkmated, the score
         // should be a large positive number (good for white).
-        assert!(score > 90000, "Score was {}, expected > 90000 for a checkmated position", score);
+        assert!(
+            score > 90000,
+            "Score was {}, expected > 90000 for a checkmated position",
+            score
+        );
     }
 }

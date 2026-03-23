@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+spawn stockfish
+expect "Stockfish"
+send "uci\n"
+expect "uciok"
+send "isready\n"
+expect "readyok"
+send "setoption name MultiPV value 3\n"
+send "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\n"
+send "go depth 10\n"
+expect "bestmove"

@@ -1,0 +1,17 @@
+#V2
+ls
+cat history.txt
+ls | | wc
+ls |
+echo |
+ls | l
+ls | wc
+ls|wc
+ls | wc
+cat history.txt | grep ls | wc
+cat history.txt | grep ls
+tldr wc
+clear
+ls | | l
+ls | | wc
+clear

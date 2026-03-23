@@ -1,128 +1,110 @@
-# Chess GUI - Modular Structure
+# Chess GUI
 
-<!--toc:start-->
-- [Chess GUI - Modular Structure](#chess-gui-modular-structure)
-  - [项目结构](#项目结构)
-  - [模块说明](#模块说明)
-    - [`types.rs`](#typesrs)
-    - [`board.rs`](#boardrs)
-    - [`ai.rs`](#airs)
-    - [`ui.rs`](#uirs)
-    - [`game.rs`](#gamers)
-    - [`lib.rs`](#librs)
-    - [`main.rs`](#mainrs)
-  - [构建和运行](#构建和运行)
-  - [功能特性](#功能特性)
-  - [重构改进](#重构改进)
-  - [技术栈](#技术栈)
-<!--toc:end-->
+一个基于 Rust + `egui/eframe` 的桌面国际象棋项目，包含对弈、PGN、赛后 Review、走法分类与引擎分析。
 
-这是一个用 Rust 和 egui 构建的国际象棋游戏，已经重构为模块化结构以提高可维护性。
+## 项目状态（2026-03-21）
 
-## 项目结构
+- 棋规完整：王车易位、过路兵、升变、将杀、逼和、三次重复、50 步规则、子力不足。
+- 对弈可用：人类执白 vs AI 执黑，支持 `Stockfish` / `LC0` / `Built-in AI`。
+- Review 可用：Top3 推荐可视化、分支树、分类统计、评估走势图、稳定性投票。
+- 性能优化：已分析局面缓存复用；回到已分析主线/分支不重复分析。
+- 工程质量：`cargo fmt`、`cargo test`、`cargo clippy --all-targets` 已通过（当前 clippy clean）。
 
-```
-src/
-├── main.rs          # 程序入口点
-├── lib.rs           # 库入口，导出所有模块
-├── types.rs         # 基础类型定义
-├── board.rs         # 棋盘逻辑和走法生成
-├── ai.rs            # AI 算法实现
-├── ui.rs            # 用户界面和应用程序逻辑
-├── game.rs          # 游戏状态管理
-└── main_backup.rs   # 原始 main.rs 文件备份
-```
+## 快速开始
 
-## 模块说明
+### 1. 环境要求
 
-### `types.rs`
+- Rust stable（edition 2024）
+- Linux 图形环境（X11/Wayland）
+- 可选外部引擎：
+  - Stockfish（默认尝试 `/usr/bin/stockfish`、`stockfish`）
+  - LC0（默认尝试 `/usr/bin/lc0`、`lc0`）
 
-- 定义了基础的游戏类型：
-  - `PieceType`: 棋子类型（兵、车、马、象、后、王）
-  - `Color`: 棋子颜色（白、黑）
-  - `Piece`: 棋子结构（类型+颜色）
-  - `Move`: 走法结构
-  - `GameState`: 游戏状态
-  - `AIDifficulty`: AI 难度等级
-
-### `board.rs`
-
-- 实现了棋盘的核心逻辑：
-  - 棋盘表示和初始化
-  - 走法生成（包括普通走法、特殊走法如王车易位、过路兵等）
-  - 走法合法性检查
-  - 将军判断
-  - 棋子移动执行
-
-### `ai.rs`
-
-- 实现了 AI 算法：
-  - minimax 搜索算法
-  - alpha-beta 剪枝
-  - 置换表优化
-  - 启发式评估函数
-  - 移动排序
-  - 迭代加深搜索
-
-### `ui.rs`
-
-- 处理用户界面：
-  - 棋盘渲染
-  - 用户交互处理
-  - 游戏状态显示
-  - 升变对话框
-  - 游戏结束界面
-
-### `game.rs`
-
-- 管理游戏逻辑：
-  - 游戏状态管理
-  - 游戏流程控制
-  - AI 思考过程管理
-  - 游戏规则验证
-
-### `lib.rs`
-
-- 作为库的入口点，导出所有模块供其他部分使用
-
-### `main.rs`
-
-- 程序的入口点，负责启动 GUI 应用程序
-
-## 构建和运行
+可用环境变量覆盖引擎路径：
 
 ```bash
-# 构建项目
-cargo build
-
-# 运行项目
-cargo run
-
-# 构建发布版本
-cargo build --release
+export CHESS_GUI_STOCKFISH_PATH=/path/to/stockfish
+export CHESS_GUI_LC0_PATH=/path/to/lc0
 ```
 
-## 功能特性
+### 2. 运行
 
-- 完整的国际象棋规则实现
-- 图形用户界面
-- AI 对手（支持多个难度等级）
-- 特殊走法支持（王车易位、过路兵、兵的升变）
-- 游戏状态检测（将军、将死、和棋）
-- 优化的 AI 搜索算法
+```bash
+cargo run
+```
 
-## 重构改进
+### 3. 常用检查
 
-通过模块化重构，项目获得了以下改进：
+```bash
+cargo fmt
+cargo test
+cargo clippy --all-targets
+```
 
-1. **更好的代码组织**: 相关功能被分组到专门的模块中
-2. **提高可维护性**: 每个模块专注于单一职责
-3. **便于测试**: 可以独立测试各个模块的功能
-4. **更好的可读性**: 代码结构更清晰，易于理解
-5. **便于扩展**: 新功能可以更容易地添加到相应的模块中
+## 主要功能
 
-## 技术栈
+- 人机对弈与难度选择：`Easy / Medium / Hard / Expert`
+- 执方选择：支持 `You play White/Black`（AI 不再固定执黑）
+- 实时走法历史（SAN）
+- 历史回看：点击走法可查看当时布局；点击棋盘可直接回到 live 对局
+- 快速结束：`Resign` 一键认输
+- 一键 `Copy PGN`
+- 赛后 Review：
+  - Top3 候选线（面板 + 棋盘箭头）
+  - 分支树（主线/子分支切换）
+  - 走法分类：`Brilliant/Critical/Best/Excellent/Okay/Inaccuracy/Mistake/Blunder`
+  - 评估图 + 准确率 + 分类统计
+  - 多深度复核 + 稳定性指标（Vote/Stable%）
 
-- **Rust**: 系统编程语言
-- **egui**: 即时模式 GUI 框架
-- **eframe**: egui 的应用程序框架
+## 核心架构
+
+```text
+src/
+├── main.rs
+├── lib.rs
+├── types.rs
+├── board.rs
+├── ai.rs
+├── uci.rs
+├── pgn.rs
+├── ui.rs
+├── ui/
+│   └── review_panel.rs
+├── review.rs
+└── review/
+    ├── analysis_pipeline.rs
+    ├── classification.rs
+    └── ui_bridge.rs
+```
+
+- `board.rs`：棋盘状态、合法走法生成、规则判定、FEN/UCI 辅助。
+- `ai.rs`：内置 AI 搜索（minimax + alpha-beta + 置换表）。
+- `uci.rs`：UCI 引擎进程、异步请求/回包。
+- `review.rs`：Review 状态机（主线/分支、缓存、导航）。
+- `review/analysis_pipeline.rs`：分析请求调度与结果回填。
+- `review/classification.rs`：分类重算与上下文判定。
+- `ui.rs` + `ui/review_panel.rs`：主界面与 Review 面板绘制。
+
+## Review 行为说明（关键）
+
+- 进入 Review 后按引擎策略执行分析：
+  - Stockfish：多深度复核（默认 `12/16/20`）
+  - LC0 / Built-in：单轮策略（响应优先）
+- 局面分析结果按 position key 缓存。
+- 已分析局面再次访问时直接复用，不重复请求引擎。
+- 在分支探索后回到对局原始主线，不会丢失主线记录。
+
+## 文档索引
+
+- `docs/ARCHITECTURE.md`：模块职责、状态流、分析流水线
+- `docs/REVIEW_WORKFLOW.md`：Review 交互语义、分支/缓存行为
+- `docs/DEVELOPMENT.md`：开发规范、调试与提交流程
+- `CHANGELOG.md`：当日改动汇总
+- `CHANGELOG_2026-03-21.md`：完整改动流水
+- `CHANGELOG_lite.md`：简版续接摘要
+
+## 已知限制
+
+- 当前默认模式是“人类执白、AI 执黑”（未提供完整双人本地 UI 流程）。
+- `Brilliant/Critical` 仍是工程化启发式，不是完整战术语义引擎。
+- 当前无 CI 配置（建议后续补 `fmt/test/clippy -D warnings`）。
