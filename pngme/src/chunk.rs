@@ -60,7 +60,7 @@ impl Chunk {
 
         chunk_bytes.extend_from_slice(&length_bytes);
         chunk_bytes.extend_from_slice(&chunk_type_bytes);
-        chunk_bytes.extend_from_slice(&data_bytes);
+        chunk_bytes.extend_from_slice(data_bytes);
         chunk_bytes.extend_from_slice(&crc_bytes);
 
         chunk_bytes
